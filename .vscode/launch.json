@@ -1,0 +1,29 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "STM32F407 Debug",
+
+            "type": "cortex-debug",
+
+            "request": "launch",
+
+            "cwd": "${workspaceFolder}",
+
+            "executable": "${workspaceFolder}/output/obj/GPIO.elf",
+
+            "servertype": "openocd",
+
+            "device": "STM32F407VG",
+
+            "configFiles": [
+                "interface/stlink.cfg",
+                "target/stm32f4x.cfg"
+            ],
+
+            "runToEntryPoint": "main",
+
+            "svdFile": "${workspaceFolder}/STM32F407.svd"
+        }
+    ]
+}
