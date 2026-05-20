@@ -9,7 +9,8 @@
                 "${workspaceFolder}/drivers/rcc/Inc",
                 "${workspaceFolder}/drivers/flash/Inc",
                 "${workspaceFolder}/drivers/exti/Inc",
-                "${workspaceFolder}/drivers/uart/Inc"
+                "${workspaceFolder}/drivers/uart/Inc",
+                "${workspaceFolder}/drivers/can/Inc"
             ],
             "defines": [
                 "STM32F407xx"
@@ -25,7 +26,8 @@
                     "${workspaceFolder}/drivers/rcc/Inc",
                     "${workspaceFolder}/drivers/flash/Inc",
                     "${workspaceFolder}/drivers/exti/Inc",
-                    "${workspaceFolder}/drivers/exti/Inc"
+                    "${workspaceFolder}/drivers/uart/Inc",
+                    "${workspaceFolder}/drivers/can/Inc"
                 ]
             }
         }

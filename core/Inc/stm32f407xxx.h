@@ -271,7 +271,7 @@ typedef struct{
 
     uint32_t RESERVED2;             // Reserved                                  0x208
 
-    volatile uint32_t FS1R;         // filter scale register                       Address offset: 0x20C
+    volatile uint32_t FS1R;         // filter scale register                     Address offset: 0x20C
 
     uint32_t RESERVED3;             // Reserved                                  0x210
 
@@ -287,6 +287,10 @@ typedef struct{
     // Filter0  : 0x240
     // Filter27 : 0x31C
 } CAN_Reg_TypeDef_t;
+
+//map CAN base address to CAN register structure
+#define CAN1    ((CAN_Reg_TypeDef_t*)(CAN1_BASE))
+#define CAN2    ((CAN_Reg_TypeDef_t*)(CAN2_BASE))
 
 #endif // __STM32F407XXX_H
 

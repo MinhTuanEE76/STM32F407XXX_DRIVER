@@ -25,6 +25,7 @@ $(PRO_DIR)/drivers/rcc/Src         \
 $(PRO_DIR)/drivers/flash/Src       \
 $(PRO_DIR)/drivers/exti/Src        \
 $(PRO_DIR)/drivers/uart/Src        \
+$(PRO_DIR)/drivers/can/Src         \
 
 
 INC_DIRS := 						\
@@ -35,6 +36,7 @@ $(PRO_DIR)/drivers/rcc/Inc          \
 $(PRO_DIR)/drivers/flash/Inc        \
 $(PRO_DIR)/drivers/exti/Inc			\
 $(PRO_DIR)/drivers/uart/Inc         \
+$(PRO_DIR)/drivers/can/Inc          \
 
 
 SRC_FILES := $(foreach dir,$(SRC_DIRS),$(wildcard $(dir)/*.c))
