@@ -11,6 +11,7 @@ GPIO_Handle_TypeDef_t hgpio;
 EXTI_Handle_t hexti;
 USART_Handle_t huart;
 CAN_Handle_t hcan;
+CAN_TxMailboxStatus_t mailbox_status;
 
 uint8_t rx_buffer[10];
 
@@ -53,6 +54,12 @@ int main(void)
             .DLC = 2,
             .Data = {0xAB, 0xCD}
         });
+        CAN_Get_TxMailboxesStatus(&hcan, CAN_TX_MAILBOX_0);
+        if(hcan.ErrorCode |= CAN_ERROR_ACK)
+        {
+            //USART_Transmit_Polling(&huart, (uint8_t *)"CAN ACK error\r\n", 15);
+            USART_Transmit_IT(&huart, (uint8_t *)"CAN ACK error\r\n", 15);
+        }
         SYSTICK_DelayMs(500);
     }
 }

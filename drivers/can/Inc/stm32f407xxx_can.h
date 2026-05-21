@@ -427,6 +427,12 @@
 #define CAN_STATE_SLEEP                 6U
 #define CAN_STATE_ACTIVE                7U
 
+/*Define CAN TX mailbox number */
+#define CAN_TX_MAILBOX_0                0U
+#define CAN_TX_MAILBOX_1                1U
+#define CAN_TX_MAILBOX_2                2U
+
+
 /*Define CAN status */
 typedef enum{
     CAN_OK = 0U,
@@ -435,6 +441,15 @@ typedef enum{
     CAN_TIMEOUT
 } CAN_Status_t;
 
+/*Define CAN get TX mailboxes status*/
+typedef enum
+{
+    CAN_TX_MAILBOX_PENDING = 0U,
+    CAN_TX_MAILBOX_SUCCESS,
+    CAN_TX_MAILBOX_FAILED,
+    CAN_TX_MAILBOX_INVALID
+
+} CAN_TxMailboxStatus_t;
 /*< Typedef structure for CAN bit timing parameters */
 typedef struct{
     uint16_t Prescaler;
@@ -512,5 +527,7 @@ CAN_Status_t CAN_WakeUp(CAN_Handle_t *hcan);
 CAN_Status_t CAN_RequestSleep(CAN_Handle_t *hcan);
 
 CAN_Status_t CAN_Add_TxMessage(CAN_Handle_t *hcan, CAN_TxFrame_t *TxFrame);
+CAN_TxMailboxStatus_t CAN_Get_TxMailboxesStatus(CAN_Handle_t *hcan, uint8_t Mailbox);
+CAN_Status_t CAN_Get_RxMessage(CAN_Handle_t *hcan, uint8_t Fifo, CAN_RxFrame_t *RxFrame);
 
 #endif // __STM32F407XXX_CAN_H

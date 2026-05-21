@@ -4,8 +4,6 @@
 #define NULL ((void *)0)
 #define CAN_TIMEOUT_VALUE 1000U
 
-
-
 /*< General CAN initialization function
 1. validate the input parameters: hcan NULL,instance,init,baudrate,mode
 2. check driver state: tx/rx busy, reject init if busy
@@ -28,15 +26,13 @@ CAN_Status_t CAN_Init(CAN_Handle_t *hcan)
         return CAN_ERROR;
     }
 
-    hcan->ErrorCode  = CAN_ERROR_NONE;
+    hcan->ErrorCode = CAN_ERROR_NONE;
 
     if (hcan->Instance == NULL)
     {
         hcan->ErrorCode |= CAN_ERROR_PARAM;
         return CAN_ERROR;
     }
-
-    
 
     if (hcan->State == CAN_STATE_BUSY)
     {
@@ -185,10 +181,10 @@ CAN_Status_t CAN_Init(CAN_Handle_t *hcan)
     }
 
     // configure bit timing parameters
-    hcan->Instance->BTR &= ~( CAN_BTR_BRP_Msk |
-                              CAN_BTR_TS1_Msk |
-                              CAN_BTR_TS2_Msk |
-                              CAN_BTR_SJW_Msk ); // clear BTR before configuring
+    hcan->Instance->BTR &= ~(CAN_BTR_BRP_Msk |
+                             CAN_BTR_TS1_Msk |
+                             CAN_BTR_TS2_Msk |
+                             CAN_BTR_SJW_Msk); // clear BTR before configuring
 
     hcan->Instance->BTR |= ((hcan->Init.BitTiming.Prescaler - 1U) << CAN_BTR_BRP_Pos) & CAN_BTR_BRP_Msk;
     hcan->Instance->BTR |= ((hcan->Init.BitTiming.TS1 - 1U) << CAN_BTR_TS1_Pos) & CAN_BTR_TS1_Msk;
@@ -220,8 +216,8 @@ CAN_Status_t CAN_Init(CAN_Handle_t *hcan)
 /*< Configure CAN filter */
 CAN_Status_t CAN_ConfigFilter(CAN_Handle_t *hcan, CAN_FilterConfig_t *FilterConfig)
 {
-    //Validate parameters
-    if(hcan == NULL || FilterConfig == NULL)
+    // Validate parameters
+    if (hcan == NULL || FilterConfig == NULL)
     {
         return CAN_ERROR;
     }
@@ -229,7 +225,7 @@ CAN_Status_t CAN_ConfigFilter(CAN_Handle_t *hcan, CAN_FilterConfig_t *FilterConf
     hcan->ErrorCode = CAN_ERROR_NONE;
 
     /* check CAN instance */
-    if(hcan->Instance == NULL)
+    if (hcan->Instance == NULL)
     {
         hcan->ErrorCode |= CAN_ERROR_PARAM;
         return CAN_ERROR;
@@ -238,28 +234,28 @@ CAN_Status_t CAN_ConfigFilter(CAN_Handle_t *hcan, CAN_FilterConfig_t *FilterConf
     /* validate filter bank
      * bxCAN on STM32F407 has 28 filter banks: 0 -> 27
      */
-    if(FilterConfig->FilterBank > 27U)
+    if (FilterConfig->FilterBank > 27U)
     {
         hcan->ErrorCode |= CAN_ERROR_PARAM;
         return CAN_ERROR;
     }
 
     /* validate filter mode */
-    if(FilterConfig->FilterMode > CAN_FILTERMODE_IDLIST)
+    if (FilterConfig->FilterMode > CAN_FILTERMODE_IDLIST)
     {
         hcan->ErrorCode |= CAN_ERROR_PARAM;
         return CAN_ERROR;
     }
 
     /* validate filter scale */
-    if(FilterConfig->FilterScale > CAN_FILTER_SCALE_32BIT)
+    if (FilterConfig->FilterScale > CAN_FILTER_SCALE_32BIT)
     {
         hcan->ErrorCode |= CAN_ERROR_PARAM;
         return CAN_ERROR;
     }
 
     /* validate FIFO assignment */
-    if(FilterConfig->FifoAssignment > CAN_RX_FIFO1)
+    if (FilterConfig->FifoAssignment > CAN_RX_FIFO1)
     {
         hcan->ErrorCode |= CAN_ERROR_PARAM;
         return CAN_ERROR;
@@ -291,7 +287,7 @@ CAN_Status_t CAN_ConfigFilter(CAN_Handle_t *hcan, CAN_FilterConfig_t *FilterConf
      * FSCx = 0 -> 16-bit scale
      * FSCx = 1 -> 32-bit scale
      *=====================================================*/
-    if(FilterConfig->FilterScale == CAN_FILTER_SCALE_32BIT)
+    if (FilterConfig->FilterScale == CAN_FILTER_SCALE_32BIT)
     {
         hcan->Instance->FS1R |= (1U << FilterConfig->FilterBank);
     }
@@ -306,13 +302,13 @@ CAN_Status_t CAN_ConfigFilter(CAN_Handle_t *hcan, CAN_FilterConfig_t *FilterConf
      * FBMx = 0 -> Mask mode
      * FBMx = 1 -> List mode
      *=====================================================*/
-    if(FilterConfig->FilterMode == CAN_FILTERMODE_IDLIST)
+    if (FilterConfig->FilterMode == CAN_FILTERMODE_IDLIST)
     {
         hcan->Instance->FM1R |= (1U << FilterConfig->FilterBank);
     }
     else
     {
-        hcan->Instance->FM1R &=  ~(1U << FilterConfig->FilterBank);
+        hcan->Instance->FM1R &= ~(1U << FilterConfig->FilterBank);
     }
 
     /*=====================================================
@@ -321,7 +317,7 @@ CAN_Status_t CAN_ConfigFilter(CAN_Handle_t *hcan, CAN_FilterConfig_t *FilterConf
      * FFAx = 0 -> FIFO0
      * FFAx = 1 -> FIFO1
      *=====================================================*/
-    if(FilterConfig->FifoAssignment == CAN_RX_FIFO1)
+    if (FilterConfig->FifoAssignment == CAN_RX_FIFO1)
     {
         hcan->Instance->FFA1R |= (1U << FilterConfig->FilterBank);
     }
@@ -360,7 +356,7 @@ CAN_Status_t CAN_ConfigFilter(CAN_Handle_t *hcan, CAN_FilterConfig_t *FilterConf
      *   FR1 = ID1
      *   FR2 = ID2
      *----------------------------------------------------*/
-    if(FilterConfig->FilterScale == CAN_FILTER_SCALE_32BIT)
+    if (FilterConfig->FilterScale == CAN_FILTER_SCALE_32BIT)
     {
         hcan->Instance->sFilterRegister[FilterConfig->FilterBank].FR1 = FilterConfig->FilterID1;
         hcan->Instance->sFilterRegister[FilterConfig->FilterBank].FR2 = FilterConfig->FilterID2;
@@ -386,7 +382,7 @@ CAN_Status_t CAN_ConfigFilter(CAN_Handle_t *hcan, CAN_FilterConfig_t *FilterConf
      * FACTx = 1 -> filter enabled
      * FACTx = 0 -> filter disabled
      *=====================================================*/
-    if(FilterConfig->FilterActivation == CAN_FILTER_ENABLE)
+    if (FilterConfig->FilterActivation == CAN_FILTER_ENABLE)
     {
         hcan->Instance->FA1R |= (1U << FilterConfig->FilterBank);
     }
@@ -420,7 +416,7 @@ CAN_Status_t CAN_Start(CAN_Handle_t *hcan)
     uint32_t tickstart = SYSTICK_GetTick();
 
     /* Check NULL handle */
-    if(hcan == NULL)
+    if (hcan == NULL)
     {
         return CAN_ERROR;
     }
@@ -429,7 +425,7 @@ CAN_Status_t CAN_Start(CAN_Handle_t *hcan)
     hcan->ErrorCode = CAN_ERROR_NONE;
 
     /* Check CAN instance */
-    if(hcan->Instance == NULL)
+    if (hcan->Instance == NULL)
     {
         hcan->ErrorCode |= CAN_ERROR_PARAM;
         return CAN_ERROR;
@@ -442,22 +438,22 @@ CAN_Status_t CAN_Start(CAN_Handle_t *hcan)
      * - READY
      * - STOPPED
      *----------------------------------------------------*/
-    if((hcan->State != CAN_STATE_READY) && (hcan->State != CAN_STATE_STOPPED))
+    if ((hcan->State != CAN_STATE_READY) && (hcan->State != CAN_STATE_STOPPED))
     {
         hcan->ErrorCode |= CAN_ERROR_NOT_INITIALIZED;
         return CAN_ERROR;
     }
 
     /*Exit sleep mode if peripheral is sleeping*/
-    if(hcan->Instance->MSR & CAN_MSR_SLAK)
+    if (hcan->Instance->MSR & CAN_MSR_SLAK)
     {
         hcan->Instance->MCR &= ~CAN_MCR_SLEEP;
 
         tickstart = SYSTICK_GetTick();
 
-        while(hcan->Instance->MSR & CAN_MSR_SLAK)
+        while (hcan->Instance->MSR & CAN_MSR_SLAK)
         {
-            if((SYSTICK_GetTick() - tickstart) > CAN_TIMEOUT_VALUE)
+            if ((SYSTICK_GetTick() - tickstart) > CAN_TIMEOUT_VALUE)
             {
                 hcan->ErrorCode |= CAN_ERROR_TIMEOUT;
                 hcan->State = CAN_STATE_ERROR;
@@ -473,9 +469,9 @@ CAN_Status_t CAN_Start(CAN_Handle_t *hcan)
     /* Wait until INAK cleared by hardware */
     tickstart = SYSTICK_GetTick();
 
-    while(hcan->Instance->MSR & CAN_MSR_INAK)
+    while (hcan->Instance->MSR & CAN_MSR_INAK)
     {
-        if((SYSTICK_GetTick() - tickstart) > CAN_TIMEOUT_VALUE)
+        if ((SYSTICK_GetTick() - tickstart) > CAN_TIMEOUT_VALUE)
         {
             hcan->ErrorCode |= CAN_ERROR_TIMEOUT;
             hcan->State = CAN_STATE_ERROR;
@@ -504,7 +500,7 @@ CAN_Status_t CAN_Stop(CAN_Handle_t *hcan)
     uint32_t tickstart = SYSTICK_GetTick();
 
     /* Check NULL handle */
-    if(hcan == NULL)
+    if (hcan == NULL)
     {
         return CAN_ERROR;
     }
@@ -513,7 +509,7 @@ CAN_Status_t CAN_Stop(CAN_Handle_t *hcan)
     hcan->ErrorCode = CAN_ERROR_NONE;
 
     /* Check CAN instance */
-    if(hcan->Instance == NULL)
+    if (hcan->Instance == NULL)
     {
         hcan->ErrorCode |= CAN_ERROR_PARAM;
         return CAN_ERROR;
@@ -527,9 +523,9 @@ CAN_Status_t CAN_Stop(CAN_Handle_t *hcan)
     hcan->Instance->MCR |= CAN_MCR_INRQ;
 
     /* Wait until hardware sets INAK */
-    while(!(hcan->Instance->MSR & CAN_MSR_INAK))
+    while (!(hcan->Instance->MSR & CAN_MSR_INAK))
     {
-        if((SYSTICK_GetTick() - tickstart) > CAN_TIMEOUT_VALUE)
+        if ((SYSTICK_GetTick() - tickstart) > CAN_TIMEOUT_VALUE)
         {
             hcan->ErrorCode |= CAN_ERROR_TIMEOUT;
             hcan->State = CAN_STATE_ERROR;
@@ -560,7 +556,7 @@ CAN_Status_t CAN_RequestSleep(CAN_Handle_t *hcan)
     uint32_t tickstart = SYSTICK_GetTick();
 
     /* Check NULL handle */
-    if(hcan == NULL)
+    if (hcan == NULL)
     {
         return CAN_ERROR;
     }
@@ -569,7 +565,7 @@ CAN_Status_t CAN_RequestSleep(CAN_Handle_t *hcan)
     hcan->ErrorCode = CAN_ERROR_NONE;
 
     /* Check instance */
-    if(hcan->Instance == NULL)
+    if (hcan->Instance == NULL)
     {
         hcan->ErrorCode |= CAN_ERROR_PARAM;
         return CAN_ERROR;
@@ -583,9 +579,9 @@ CAN_Status_t CAN_RequestSleep(CAN_Handle_t *hcan)
     hcan->Instance->MCR |= CAN_MCR_SLEEP;
 
     /* Wait until SLAK set */
-    while(!(hcan->Instance->MSR & CAN_MSR_SLAK))
+    while (!(hcan->Instance->MSR & CAN_MSR_SLAK))
     {
-        if((SYSTICK_GetTick() - tickstart) > CAN_TIMEOUT_VALUE)
+        if ((SYSTICK_GetTick() - tickstart) > CAN_TIMEOUT_VALUE)
         {
             hcan->ErrorCode |= CAN_ERROR_TIMEOUT;
             hcan->State = CAN_STATE_ERROR;
@@ -615,7 +611,7 @@ CAN_Status_t CAN_WakeUp(CAN_Handle_t *hcan)
     uint32_t tickstart = SYSTICK_GetTick();
 
     /* Check NULL handle */
-    if(hcan == NULL)
+    if (hcan == NULL)
     {
         return CAN_ERROR;
     }
@@ -624,7 +620,7 @@ CAN_Status_t CAN_WakeUp(CAN_Handle_t *hcan)
     hcan->ErrorCode = CAN_ERROR_NONE;
 
     /* Check instance */
-    if(hcan->Instance == NULL)
+    if (hcan->Instance == NULL)
     {
         hcan->ErrorCode |= CAN_ERROR_PARAM;
         return CAN_ERROR;
@@ -633,7 +629,7 @@ CAN_Status_t CAN_WakeUp(CAN_Handle_t *hcan)
     /*-----------------------------------------------------
      * Peripheral must be in sleep state
      *----------------------------------------------------*/
-    if(hcan->State != CAN_STATE_SLEEP)
+    if (hcan->State != CAN_STATE_SLEEP)
     {
         hcan->ErrorCode |= CAN_ERROR_STATE;
         return CAN_ERROR;
@@ -647,9 +643,9 @@ CAN_Status_t CAN_WakeUp(CAN_Handle_t *hcan)
     hcan->Instance->MCR &= ~CAN_MCR_SLEEP;
 
     /* Wait until SLAK cleared */
-    while(hcan->Instance->MSR & CAN_MSR_SLAK)
+    while (hcan->Instance->MSR & CAN_MSR_SLAK)
     {
-        if((SYSTICK_GetTick() - tickstart) > CAN_TIMEOUT_VALUE)
+        if ((SYSTICK_GetTick() - tickstart) > CAN_TIMEOUT_VALUE)
         {
             hcan->ErrorCode |= CAN_ERROR_TIMEOUT;
             hcan->State = CAN_STATE_ERROR;
@@ -665,7 +661,6 @@ CAN_Status_t CAN_WakeUp(CAN_Handle_t *hcan)
     return CAN_OK;
 }
 
-
 /*=========================================================
  * CAN_Add_TxMessage
  *
@@ -677,72 +672,71 @@ CAN_Status_t CAN_WakeUp(CAN_Handle_t *hcan)
  *=========================================================*/
 CAN_Status_t CAN_Add_TxMessage(CAN_Handle_t *hcan, CAN_TxFrame_t *TxFrame)
 {
-    if(hcan == NULL || TxFrame == NULL)
+    if (hcan == NULL || TxFrame == NULL)
     {
         return CAN_ERROR;
     }
     /* Check instance */
-    if(hcan->Instance == NULL)
+    if (hcan->Instance == NULL)
     {
         hcan->ErrorCode |= CAN_ERROR_PARAM;
         return CAN_ERROR;
     }
-    
-    //check mailbox availability
+
+    // check mailbox availability
     uint8_t available_mailbox = 0xFF; // 0xFF indicates no mailbox available
-    if(hcan->Instance->TSR & CAN_TSR_TME0)
+    if (hcan->Instance->TSR & CAN_TSR_TME0)
     {
-        //Maibox[0] is free
-        if(TxFrame->IDE == CAN_ID_STANDARD)
+        // Maibox[0] is free
+        if (TxFrame->IDE == CAN_ID_STANDARD)
         {
             available_mailbox = 0;
-            hcan->Instance->sTxMailBox[0].TIR &= ~CAN_TIR_IDE; // standard ID
+            hcan->Instance->sTxMailBox[0].TIR &= ~CAN_TIR_IDE;                      // standard ID
             hcan->Instance->sTxMailBox[0].TIR |= (TxFrame->RTR << CAN_TIR_RTR_Pos); // set RTR bit
             hcan->Instance->sTxMailBox[0].TIR &= ~CAN_TIR_STID;
             hcan->Instance->sTxMailBox[0].TIR |= TxFrame->ID << CAN_TIR_STID_Pos; // set standard ID
         }
         else
         {
-            hcan->Instance->sTxMailBox[0].TIR |= CAN_TIR_IDE; // extended ID
+            hcan->Instance->sTxMailBox[0].TIR |= CAN_TIR_IDE;                       // extended ID
             hcan->Instance->sTxMailBox[0].TIR |= (TxFrame->RTR << CAN_TIR_RTR_Pos); // set RTR bit
             hcan->Instance->sTxMailBox[0].TIR &= ~CAN_TIR_EXID;
             hcan->Instance->sTxMailBox[0].TIR |= (TxFrame->ID << CAN_TIR_EXID_Pos); // set extended ID
-        }  
+        }
     }
-    else if(hcan->Instance->TSR & CAN_TSR_TME1)
+    else if (hcan->Instance->TSR & CAN_TSR_TME1)
     {
-        //Mailbox[1] is free
+        // Mailbox[1] is free
         available_mailbox = 1;
-        if(TxFrame->IDE == CAN_ID_STANDARD)
+        if (TxFrame->IDE == CAN_ID_STANDARD)
         {
-            hcan->Instance->sTxMailBox[1].TIR &= ~CAN_TIR_IDE; // standard ID
+            hcan->Instance->sTxMailBox[1].TIR &= ~CAN_TIR_IDE;                      // standard ID
             hcan->Instance->sTxMailBox[1].TIR |= (TxFrame->RTR << CAN_TIR_RTR_Pos); // set RTR bit
             hcan->Instance->sTxMailBox[1].TIR &= ~CAN_TIR_STID;
             hcan->Instance->sTxMailBox[1].TIR |= TxFrame->ID << CAN_TIR_STID_Pos; // set standard ID
         }
         else
         {
-            hcan->Instance->sTxMailBox[1].TIR |= CAN_TIR_IDE; // extended ID
+            hcan->Instance->sTxMailBox[1].TIR |= CAN_TIR_IDE;                       // extended ID
             hcan->Instance->sTxMailBox[1].TIR |= (TxFrame->RTR << CAN_TIR_RTR_Pos); // set RTR bit
             hcan->Instance->sTxMailBox[1].TIR &= ~CAN_TIR_EXID;
             hcan->Instance->sTxMailBox[1].TIR |= (TxFrame->ID << CAN_TIR_EXID_Pos); // set extended ID
         }
-
     }
-    else if(hcan->Instance->TSR & CAN_TSR_TME2)
+    else if (hcan->Instance->TSR & CAN_TSR_TME2)
     {
-        //Mailbox[2] is free
+        // Mailbox[2] is free
         available_mailbox = 2;
-        if(TxFrame->IDE == CAN_ID_STANDARD)
+        if (TxFrame->IDE == CAN_ID_STANDARD)
         {
-            hcan->Instance->sTxMailBox[2].TIR &= ~CAN_TIR_IDE; // standard ID
+            hcan->Instance->sTxMailBox[2].TIR &= ~CAN_TIR_IDE;                      // standard ID
             hcan->Instance->sTxMailBox[2].TIR |= (TxFrame->RTR << CAN_TIR_RTR_Pos); // set RTR bit
             hcan->Instance->sTxMailBox[2].TIR &= ~CAN_TIR_STID;
             hcan->Instance->sTxMailBox[2].TIR |= TxFrame->ID << CAN_TIR_STID_Pos; // set standard ID
         }
         else
         {
-            hcan->Instance->sTxMailBox[2].TIR |= CAN_TIR_IDE; // extended ID
+            hcan->Instance->sTxMailBox[2].TIR |= CAN_TIR_IDE;                       // extended ID
             hcan->Instance->sTxMailBox[2].TIR |= (TxFrame->RTR << CAN_TIR_RTR_Pos); // set RTR bit
             hcan->Instance->sTxMailBox[2].TIR &= ~CAN_TIR_EXID;
             hcan->Instance->sTxMailBox[2].TIR |= (TxFrame->ID << CAN_TIR_EXID_Pos); // set extended ID
@@ -750,7 +744,7 @@ CAN_Status_t CAN_Add_TxMessage(CAN_Handle_t *hcan, CAN_TxFrame_t *TxFrame)
     }
     else
     {
-        //No mailbox is free
+        // No mailbox is free
         hcan->ErrorCode |= CAN_ERROR_TX_MAILBOX_FULL;
         return CAN_BUSY;
     }
@@ -758,16 +752,16 @@ CAN_Status_t CAN_Add_TxMessage(CAN_Handle_t *hcan, CAN_TxFrame_t *TxFrame)
     // Set DLC and data
     hcan->Instance->sTxMailBox[available_mailbox].TDTR &= ~CAN_TDTR_DLC;
     hcan->Instance->sTxMailBox[available_mailbox].TDTR |= (TxFrame->DLC << CAN_TDTR_DLC_Pos);
-    for(uint8_t i = 0; i < TxFrame->DLC; i++)
+    for (uint8_t i = 0; i < TxFrame->DLC; i++)
     {
-        if(i < 4)
+        if (i < 4)
         {
-            hcan->Instance->sTxMailBox[available_mailbox].TDLR &= ~(0xFFU << (8 * i)); // clear previous data
+            hcan->Instance->sTxMailBox[available_mailbox].TDLR &= ~(0xFFU << (8 * i));         // clear previous data
             hcan->Instance->sTxMailBox[available_mailbox].TDLR |= TxFrame->Data[i] << (8 * i); // pack data into TDLR
         }
         else
         {
-            hcan->Instance->sTxMailBox[available_mailbox].TDHR &= ~(0xFFU << (8 * (i - 4))); // clear previous data
+            hcan->Instance->sTxMailBox[available_mailbox].TDHR &= ~(0xFFU << (8 * (i - 4)));         // clear previous data
             hcan->Instance->sTxMailBox[available_mailbox].TDHR |= TxFrame->Data[i] << (8 * (i - 4)); // pack data into TDHR
         }
     }
@@ -775,3 +769,236 @@ CAN_Status_t CAN_Add_TxMessage(CAN_Handle_t *hcan, CAN_TxFrame_t *TxFrame)
     hcan->Instance->sTxMailBox[available_mailbox].TIR |= CAN_TIR_TXRQ;
     return CAN_OK;
 }
+
+/*CAN get TX mailboxes status*/
+CAN_TxMailboxStatus_t CAN_Get_TxMailboxesStatus(CAN_Handle_t *hcan, uint8_t Mailbox)
+{
+    if (hcan == NULL)
+    {
+        return CAN_TX_MAILBOX_INVALID;
+    }
+    // Check instance
+    if (hcan->Instance == NULL)
+    {
+        hcan->ErrorCode |= CAN_ERROR_PARAM;
+        return CAN_TX_MAILBOX_INVALID;
+    }
+
+    switch (Mailbox)
+    {
+    case CAN_TX_MAILBOX_0:
+        if (hcan->Instance->TSR & CAN_TSR_RQCP0)
+        {
+            if (hcan->Instance->TSR & CAN_TSR_TXOK0)
+            {
+                // transmission successful
+                hcan->Instance->TSR |= CAN_TSR_RQCP0; // clear RQCP0 by writing 1
+                return CAN_TX_MAILBOX_SUCCESS;
+            }
+            else
+            {
+                // check error code
+                if (hcan->Instance->TSR & CAN_TSR_TERR0)
+                {
+                    hcan->ErrorCode |= CAN_ERROR_STATE;
+                }
+                // check specific error type in ESR
+                /*if REC or TEC >= 128 --> error passive*/
+                if (hcan->Instance->ESR & CAN_ESR_EPVF)
+                {
+                    hcan->ErrorCode |= CAN_ERROR_PASSIVE;
+                }
+                /*if REC or TEC  >= 96 --> warning state*/
+                if (hcan->Instance->ESR & CAN_ESR_EWGF)
+                {
+                    hcan->ErrorCode |= CAN_ERROR_WARNING;
+                }
+                /*if TEC >= 256 --> bus off*/
+                if (hcan->Instance->ESR & CAN_ESR_BOFF)
+                {
+                    hcan->ErrorCode |= CAN_ERROR_BUS_OFF;
+                }
+
+                if (hcan->Instance->ESR & CAN_ESR_LEC_Msk)
+                {
+                    uint32_t lec = (hcan->Instance->ESR & CAN_ESR_LEC_Msk) >> CAN_ESR_LEC_Pos;
+                    switch (lec)
+                    {
+                    case 0x1:
+                        hcan->ErrorCode |= CAN_ERROR_STUFF;
+                        break;
+                    case 0x2:
+                        hcan->ErrorCode |= CAN_ERROR_FORM;
+                        break;
+                    case 0x3:
+                        hcan->ErrorCode |= CAN_ERROR_ACK;
+                        break;
+                    case 0x4:
+                        hcan->ErrorCode |= CAN_ERROR_BIT_RECESSIVE;
+                        break;
+                    case 0x5:
+                        hcan->ErrorCode |= CAN_ERROR_BIT_DOMINANT;
+                        break;
+                    case 0x6:
+                        hcan->ErrorCode |= CAN_ERROR_CRC;
+                        break;
+                    default:
+                        break;
+                    }
+                }
+                return CAN_TX_MAILBOX_FAILED;
+            }
+        }
+        else
+        {
+            return CAN_TX_MAILBOX_PENDING;
+        }
+        break;
+    /*Mailbox1*/
+    case CAN_TX_MAILBOX_1:
+        if (hcan->Instance->TSR & CAN_TSR_RQCP1)
+        {
+            if (hcan->Instance->TSR & CAN_TSR_TXOK1)
+            {
+                // transmission successful
+                hcan->Instance->TSR |= CAN_TSR_RQCP1; // clear RQCP1 by writing 1
+                return CAN_TX_MAILBOX_SUCCESS;
+            }
+            else
+            {
+                hcan->Instance->TSR |= CAN_TSR_RQCP1; // clear RQCP1 by writing 1
+                // check error code
+                if (hcan->Instance->TSR & CAN_TSR_TERR1)
+                {
+                    hcan->ErrorCode |= CAN_ERROR_STATE;
+                }
+                // check specific error type in ESR
+                /*if REC or TEC >= 128 --> error passive*/
+                if (hcan->Instance->ESR & CAN_ESR_EPVF)
+                {
+                    hcan->ErrorCode |= CAN_ERROR_PASSIVE;
+                }
+                /*if REC or TEC  >= 96 --> warning state*/
+                if (hcan->Instance->ESR & CAN_ESR_EWGF)
+                {
+                    hcan->ErrorCode |= CAN_ERROR_WARNING;
+                }
+                /*if TEC >= 256 --> bus off*/
+                if (hcan->Instance->ESR & CAN_ESR_BOFF)
+                {
+                    hcan->ErrorCode |= CAN_ERROR_BUS_OFF;
+                }
+
+                if (hcan->Instance->ESR & CAN_ESR_LEC_Msk)
+                {
+                    uint32_t lec = (hcan->Instance->ESR & CAN_ESR_LEC_Msk) >> CAN_ESR_LEC_Pos;
+                    switch (lec)
+                    {
+                    case 0x1:
+                        hcan->ErrorCode |= CAN_ERROR_STUFF;
+                        break;
+                    case 0x2:
+                        hcan->ErrorCode |= CAN_ERROR_FORM;
+                        break;
+                    case 0x3:
+                        hcan->ErrorCode |= CAN_ERROR_ACK;
+                        break;
+                    case 0x4:
+                        hcan->ErrorCode |= CAN_ERROR_BIT_RECESSIVE;
+                        break;
+                    case 0x5:
+                        hcan->ErrorCode |= CAN_ERROR_BIT_DOMINANT;
+                        break;
+                    case 0x6:
+                        hcan->ErrorCode |= CAN_ERROR_CRC;
+                        break;
+                    default:
+                        break;
+                    }
+                }
+                return CAN_TX_MAILBOX_FAILED;
+            }
+        }
+        else
+        {
+            return CAN_TX_MAILBOX_PENDING;
+        }
+        break;
+    /*Mailbox2*/
+    case CAN_TX_MAILBOX_2:
+        if (hcan->Instance->TSR & CAN_TSR_RQCP2)
+        {
+            if (hcan->Instance->TSR & CAN_TSR_TXOK2)
+            {
+                // transmission successful
+                hcan->Instance->TSR |= CAN_TSR_RQCP2; // clear RQCP2 by writing 1
+                return CAN_TX_MAILBOX_SUCCESS;
+            }
+            else
+            {
+                // check error code
+                if (hcan->Instance->TSR & CAN_TSR_TERR2)
+                {
+                    hcan->ErrorCode |= CAN_ERROR_STATE;
+                }
+                // check specific error type in ESR
+                /*if REC or TEC >= 128 --> error passive*/
+                if (hcan->Instance->ESR & CAN_ESR_EPVF)
+                {
+                    hcan->ErrorCode |= CAN_ERROR_PASSIVE;
+                }
+                /*if REC or TEC  >= 96 --> warning state*/
+                if (hcan->Instance->ESR & CAN_ESR_EWGF)
+                {
+                    hcan->ErrorCode |= CAN_ERROR_WARNING;
+                }
+                /*if TEC >= 256 --> bus off*/
+                if (hcan->Instance->ESR & CAN_ESR_BOFF)
+                {
+                    hcan->ErrorCode |= CAN_ERROR_BUS_OFF;
+                }
+
+                if (hcan->Instance->ESR & CAN_ESR_LEC_Msk)
+                {
+                    uint32_t lec = (hcan->Instance->ESR & CAN_ESR_LEC_Msk) >> CAN_ESR_LEC_Pos;
+                    switch (lec)
+                    {
+                    case 0x1:
+                        hcan->ErrorCode |= CAN_ERROR_STUFF;
+                        break;
+                    case 0x2:
+                        hcan->ErrorCode |= CAN_ERROR_FORM;
+                        break;
+                    case 0x3:
+                        hcan->ErrorCode |= CAN_ERROR_ACK;
+                        break;
+                    case 0x4:
+                        hcan->ErrorCode |= CAN_ERROR_BIT_RECESSIVE;
+                        break;
+                    case 0x5:
+                        hcan->ErrorCode |= CAN_ERROR_BIT_DOMINANT;
+                        break;
+                    case 0x6:
+                        hcan->ErrorCode |= CAN_ERROR_CRC;
+                        break;
+                    default:
+                        break;
+                    }
+                }
+                hcan->Instance->TSR |= CAN_TSR_RQCP2; // clear RQCP2 by writing 1
+                return CAN_TX_MAILBOX_FAILED;
+            }
+        }
+        else
+        {
+            return CAN_TX_MAILBOX_PENDING;
+        }
+        break;
+
+    default:
+        hcan->ErrorCode |= CAN_ERROR_PARAM;
+        return CAN_TX_MAILBOX_INVALID;
+    }
+}
+/*---------------------------------------End CAN get status of tx mailboxes---------------------------------------*/
+
