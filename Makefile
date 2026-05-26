@@ -1,5 +1,5 @@
 
-PROJ_NAME := GPIO
+PROJ_NAME := stm32f307xxx_driver
 
 PRO_DIR   := .
 OUT_DIR   := $(PRO_DIR)/output
@@ -18,6 +18,7 @@ LINKER_FILE := $(PRO_DIR)/linker/stm32f4xx_linker.ld
 
 SRC_DIRS :=                        \
 $(PRO_DIR)/app/Src 			       \
+$(PRO_DIR)/app/Src/Components/Src  \
 $(PRO_DIR)/core/Src          	   \
 $(PRO_DIR)/startup/                \
 $(PRO_DIR)/drivers/gpio/Src 	   \
@@ -30,6 +31,7 @@ $(PRO_DIR)/drivers/can/Src         \
 
 INC_DIRS := 						\
 $(PRO_DIR)/app/Inc 					\
+$(PRO_DIR)/app/Components/Inc		\
 $(PRO_DIR)/core/Inc				    \
 $(PRO_DIR)/drivers/gpio/Inc         \
 $(PRO_DIR)/drivers/rcc/Inc          \

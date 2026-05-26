@@ -66,7 +66,7 @@
  * CAN_RF0R
  * ========================================================= */
 #define CAN_RF0R_FMP0_Pos               0U
-#define CAN_RF0R_FMP0_Msk               (3U << CAN_RF0R_FMP0_Pos)
+#define CAN_RF0R_FMP0               (3U << CAN_RF0R_FMP0_Pos)
 
 #define CAN_RF0R_FULL0                  (1U << 3)
 #define CAN_RF0R_FOVR0                  (1U << 4)
@@ -76,7 +76,7 @@
  * CAN_RF1R
  * ========================================================= */
 #define CAN_RF1R_FMP1_Pos               0U
-#define CAN_RF1R_FMP1_Msk               (3U << CAN_RF1R_FMP1_Pos)
+#define CAN_RF1R_FMP1               (3U << CAN_RF1R_FMP1_Pos)
 
 #define CAN_RF1R_FULL1                  (1U << 3)
 #define CAN_RF1R_FOVR1                  (1U << 4)
@@ -450,6 +450,17 @@ typedef enum
     CAN_TX_MAILBOX_INVALID
 
 } CAN_TxMailboxStatus_t;
+
+/*Define RX FIFO status*/
+typedef enum{
+    CAN_RX_FIFO_EMPTY = 0,
+    CAN_RX_FIFO_PENDING,
+    CAN_RX_FIFO_PENDING_1,
+    CAN_RX_FIFO_PENDING_2,
+    CAN_RX_FIFO_PENDING_3,
+    CAN_RX_FIRO_OVERRUN
+} CAN_Rx_FifoStatus_t;
+
 /*< Typedef structure for CAN bit timing parameters */
 typedef struct{
     uint16_t Prescaler;
@@ -500,20 +511,36 @@ typedef struct{
     uint8_t FilterActivation;       /* Specifies whether the filter is enabled or disabled. */
 } CAN_FilterConfig_t;
 
+/*Define RX Queue*/
+#define CAN_RX_QUEUE_SIZE 128U
+typedef struct{
+    CAN_RxFrame_t RxFrame_Queue[CAN_RX_QUEUE_SIZE];
+    uint16_t head;
+    uint16_t tail;
+    uint16_t count;
+} CAN_RxQueue_t;
+
 /*< Define structure for CAN handle */
 typedef struct {
     CAN_Reg_TypeDef_t *Instance;            /* Register base address. */
     CAN_Config_t Init;                      /* CAN communication parameters. */
 
     CAN_TxFrame_t *TxFrame;                 /* CAN Tx message. */
-    CAN_RxFrame_t *RxFrame;                 /* CAN Rx message. */
+    CAN_RxQueue_t *RxQueue;                 /* CAN Rx message queue. */
 
     CAN_FilterConfig_t FilterConfig;        /* CAN filter configuration. */
 
     uint8_t State;                          /* CAN communication state. */
 
     uint32_t ErrorCode;                     /* CAN error code. */
+
+    /*>callback function*/
+    void (*RxFifo0_MsgPending_Callback)(void);
+    void (*RxFifo1_MsgPending_Callback)(void);
+
+
 } CAN_Handle_t;
+
 
 
 /*< Function prototypes */
@@ -529,5 +556,10 @@ CAN_Status_t CAN_RequestSleep(CAN_Handle_t *hcan);
 CAN_Status_t CAN_Add_TxMessage(CAN_Handle_t *hcan, CAN_TxFrame_t *TxFrame);
 CAN_TxMailboxStatus_t CAN_Get_TxMailboxesStatus(CAN_Handle_t *hcan, uint8_t Mailbox);
 CAN_Status_t CAN_Get_RxMessage(CAN_Handle_t *hcan, uint8_t Fifo, CAN_RxFrame_t *RxFrame);
+
+void CAN_Get_Message_IT(CAN_Handle_t *hcan);
+
+
+void CAN_RX_IRQHandler(CAN_Handle_t *hcan,uint8_t Fifo);
 
 #endif // __STM32F407XXX_CAN_H

@@ -192,7 +192,7 @@ static void CAN_INIT(void)
     filter_config.FilterBank = 0U;
     filter_config.FilterMode = CAN_FILTERMODE_IDMASK;
     filter_config.FilterScale = CAN_FILTER_SCALE_32BIT;
-    filter_config.FilterID1 = 0x00000000U;
+    filter_config.FilterID1 = 0x00000000U;   
     filter_config.FilterID2 = 0x00000000U;
     filter_config.FifoAssignment = CAN_RX_FIFO0;
     filter_config.FilterActivation = CAN_FILTER_ENABLE;

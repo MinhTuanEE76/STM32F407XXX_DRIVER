@@ -4,6 +4,8 @@
 #define NULL ((void *)0)
 #define CAN_TIMEOUT_VALUE 1000U
 
+uint32_t tickstart = 0;
+
 /*< General CAN initialization function
 1. validate the input parameters: hcan NULL,instance,init,baudrate,mode
 2. check driver state: tx/rx busy, reject init if busy
@@ -20,7 +22,7 @@
 */
 CAN_Status_t CAN_Init(CAN_Handle_t *hcan)
 {
-    uint32_t tickstart = SYSTICK_GetTick();
+    tickstart = SYSTICK_GetTick();
     if (hcan == NULL)
     {
         return CAN_ERROR;
@@ -114,20 +116,19 @@ CAN_Status_t CAN_Init(CAN_Handle_t *hcan)
                              CAN_MCR_AWUM |
                              CAN_MCR_ABOM);
 
-    hcan->Instance->BTR &= ~(CAN_BTR_LBKM |
-                             CAN_BTR_SILM);
+    hcan->Instance->BTR &= ~(CAN_BTR_LBKM | CAN_BTR_SILM);
 
     // configure features based on Init parameters
     if (hcan->Init.AutoBussOff)
     {
         hcan->Instance->MCR |= CAN_MCR_ABOM; // set bit auto bus-off management
     }
-
+    /*-----------------------------------------------------------------------------*/
     if (hcan->Init.AutoWakeUp)
     {
         hcan->Instance->MCR |= CAN_MCR_AWUM; // set bit auto wake-up mode
     }
-
+    /*-----------------------------------------------------------------------------*/
     if (hcan->Init.AutoRetransmission)
     {
         hcan->Instance->MCR &= ~CAN_MCR_NART; // clear bit to enable auto retransmission
@@ -136,7 +137,7 @@ CAN_Status_t CAN_Init(CAN_Handle_t *hcan)
     {
         hcan->Instance->MCR |= CAN_MCR_NART; // set bit to disable auto retransmission
     }
-
+    /*-----------------------------------------------------------------------------*/
     if (hcan->Init.ReceiveFifoLocked)
     {
         hcan->Instance->MCR |= CAN_MCR_RFLM; // receive FIFO locked mode = 1 ->discard new message when FIFO is full
@@ -145,7 +146,7 @@ CAN_Status_t CAN_Init(CAN_Handle_t *hcan)
     {
         hcan->Instance->MCR &= ~CAN_MCR_RFLM; // receive FIFO locked mode = 0 -> overwrite old message when FIFO is full
     }
-
+    /*-----------------------------------------------------------------------------*/
     if (hcan->Init.TransmitFifoPriority)
     {
         hcan->Instance->MCR |= CAN_MCR_TXFP; // transmit FIFO priority by the order of requests
@@ -1001,4 +1002,281 @@ CAN_TxMailboxStatus_t CAN_Get_TxMailboxesStatus(CAN_Handle_t *hcan, uint8_t Mail
     }
 }
 /*---------------------------------------End CAN get status of tx mailboxes---------------------------------------*/
+
+/* 
+
+*/
+static inline CAN_Rx_FifoStatus_t CAN_Receive_FIFO0_Status(CAN_Handle_t *hcan)
+{
+    if((hcan->Instance->RF0R & CAN_RF0R_FMP0) != 0 )
+    {
+        return CAN_RX_FIFO_PENDING;
+    }
+    return CAN_RX_FIFO_EMPTY;
+}
+
+static inline CAN_Rx_FifoStatus_t CAN_Receive_FIFO1_Status(CAN_Handle_t *hcan)
+{
+    if((hcan->Instance->RF1R & CAN_RF1R_FMP1) != 0 )
+    {
+        return CAN_RX_FIFO_PENDING;
+    }
+    return CAN_RX_FIFO_EMPTY;
+}
+
+
+CAN_Status_t CAN_Get_RxMessage(CAN_Handle_t *hcan, uint8_t Fifo, CAN_RxFrame_t *RxFrame)
+{
+    if(Fifo == CAN_RX_FIFO0)
+    {
+        /*wait FIFO at least one frame pending*/
+        tickstart = SYSTICK_GetTick();
+        while(CAN_Receive_FIFO0_Status(hcan) != CAN_RX_FIFO_PENDING)
+        {
+            if((SYSTICK_GetTick() - tickstart) > CAN_TIMEOUT)
+            {
+                return CAN_TIMEOUT;
+            }
+        }
+        RxFrame->RTR = (hcan->Instance->sFIFOMailBox[0].RIR >> 1U) & 1U;
+        RxFrame->IDE = (hcan->Instance->sFIFOMailBox[0].RIR >> 2U) & 1U;
+        if(hcan->Instance->sFIFOMailBox[0].RIR & CAN_RIR_IDE)
+        {
+            //if extended frame
+            RxFrame->ID = (hcan->Instance->sFIFOMailBox[0].RIR & CAN_RIR_EXID) >> 3U;
+        }
+        else
+        {
+            RxFrame->ID = (hcan->Instance->sFIFOMailBox[0].RIR & CAN_RIR_STID) >> 21U;
+        }       
+
+        RxFrame->DLC = hcan->Instance->sFIFOMailBox[0].RDTR & CAN_RDTR_DLC;
+        uint8_t data_len = hcan->Instance->sFIFOMailBox[0].RDTR & CAN_RDTR_DLC;
+        for(uint8_t i = 0 ; i < data_len ; i ++)
+        {
+            if(i < 4U)
+            {
+                RxFrame->Data[i] = (hcan->Instance->sFIFOMailBox[0].RDLR >> (i*8U));
+            }
+            else
+            {
+                RxFrame->Data[i] = (hcan->Instance->sFIFOMailBox[0].RDHR >> ((i - 4U)*8U));
+            }
+        }
+
+        //release FIFO
+        hcan->Instance->RF0R |= CAN_RF0R_RFOM0;
+        return CAN_OK;
+    }
+    else
+    {
+        /*wait FIFO at least one frame pending*/
+        tickstart = SYSTICK_GetTick();
+        while(CAN_Receive_FIFO1_Status(hcan) != CAN_RX_FIFO_PENDING)
+        {
+            if((SYSTICK_GetTick() - tickstart) > CAN_TIMEOUT)
+            {
+                return CAN_TIMEOUT;
+            }
+        }
+        RxFrame->RTR = (hcan->Instance->sFIFOMailBox[1].RIR >> 1U) & 1U;
+        RxFrame->IDE = (hcan->Instance->sFIFOMailBox[1].RIR >> 2U) & 1U;
+        if(hcan->Instance->sFIFOMailBox[1].RIR & CAN_RIR_IDE)
+        {
+            //if extended frame
+            RxFrame->ID = (hcan->Instance->sFIFOMailBox[1].RIR & CAN_RIR_EXID) >> 3U;
+        }
+        else
+        {
+            RxFrame->ID = (hcan->Instance->sFIFOMailBox[1].RIR & CAN_RIR_STID) >> 21U;
+        }       
+
+        RxFrame->DLC = hcan->Instance->sFIFOMailBox[1].RDTR & CAN_RDTR_DLC;
+        uint8_t data_len = hcan->Instance->sFIFOMailBox[1].RDTR & CAN_RDTR_DLC;
+        for(uint8_t i = 0 ; i < data_len ; i ++)
+        {
+            if(i < 4U)
+            {
+                RxFrame->Data[i] = (hcan->Instance->sFIFOMailBox[1].RDLR >> (i*8U));
+            }
+            else
+            {
+
+                RxFrame->Data[i] = (hcan->Instance->sFIFOMailBox[1].RDHR >> ((i-4U)*8U));
+            }
+        }
+
+        //release FIFO
+        hcan->Instance->RF1R |= CAN_RF1R_RFOM1;
+        return CAN_OK;
+    }
+
+    return CAN_ERROR;
+}
+
+/*---------------------------------------Interrupt--------------------------------*/
+void CAN_Get_Message_IT(CAN_Handle_t *hcan)
+{
+    if(hcan == NULL)
+    {
+        return;
+    }
+
+    if(hcan->Instance == NULL)
+    {
+        hcan->ErrorCode |= CAN_ERROR_PARAM;
+        return;
+    }
+
+    //Enable FIFOx message pending interrupt
+    hcan->Instance->IER |= CAN_IER_FMPIE0; // Enable FIFO 0 message pending interrupt
+    hcan->Instance->IER |= CAN_IER_FMPIE1; // Enable FIFO 1 message pending interrupt
+}
+
+/*
+    Generic CAN_RX_IRQHandler is called from the interrupt handlers
+    Assigment: copy frame from FIFOMailbox->Queue and release FIFO
+*/
+void CAN_Rx_Queue_Push(CAN_Handle_t *hcan , CAN_RxFrame_t frame)
+{
+    CAN_RxQueue_t *Queue = hcan->RxQueue;
+    if(Queue->count >= CAN_RX_QUEUE_SIZE)
+    {
+        return;
+    }
+    Queue->RxFrame_Queue[Queue->head] = frame;
+    Queue->head = (Queue->head + 1) % CAN_RX_QUEUE_SIZE;
+    Queue->count++;
+}
+
+static void CAN_RX0_Get_and_Release(CAN_Handle_t *hcan)
+{
+    /*> At here: FIFO 0 contains at least one frame waitint to be processed */
+    CAN_FIFOMailBox_TypeDef_t *Fifo = hcan->Instance->sFIFOMailBox;
+    
+    CAN_RxFrame_t Frame = {0};
+
+    Frame.RTR = (Fifo[0].RIR >> 1U) & 1U;
+    if(Fifo[0].RIR & CAN_RIR_IDE)
+    {
+        Frame.IDE = CAN_ID_EXTENDED;
+        Frame.ID  = (Fifo[0].RIR & CAN_RIR_EXID) >> CAN_RIR_EXID_Pos;
+    }
+    else
+    {
+        Frame.IDE = CAN_ID_STANDARD;
+        Frame.ID  = (Fifo[0].RIR & CAN_RIR_STID) >> CAN_RIR_STID_Pos;
+    }
+    
+    uint8_t len = Fifo[0].RDTR & CAN_RDTR_DLC;
+    Frame.DLC   = len;
+
+    for(uint8_t i = 0 ; i < len ; i++)
+    {
+        if(i < 4U)
+        {
+            Frame.Data[i] = (uint8_t)(Fifo[0].RDLR >> (8U*i));
+        }
+        else
+        {
+            Frame.Data[i] = (uint8_t)(Fifo[0].RDHR >> (8U*(i - 4U)));
+        }
+    }
+    //push frame into queue
+    CAN_Rx_Queue_Push(hcan,Frame);
+    //release frame 
+    hcan->Instance->RF0R |= CAN_RF0R_RFOM0;
+}
+
+static void CAN_RX1_Get_and_Release(CAN_Handle_t *hcan)
+{
+    /*> At here: FIFO 1 contains at least one frame waitint to be processed */
+    CAN_FIFOMailBox_TypeDef_t *Fifo = hcan->Instance->sFIFOMailBox;
+    
+    CAN_RxFrame_t Frame = {0};
+
+    Frame.RTR = (Fifo[1].RIR >> 1U) & 1U;
+    if(Fifo[1].RIR & CAN_RIR_IDE)
+    {
+        Frame.IDE = CAN_ID_EXTENDED;
+        Frame.ID  = (Fifo[1].RIR & CAN_RIR_EXID) >> 16U;
+    }
+    else
+    {
+        Frame.IDE = CAN_ID_STANDARD;
+        Frame.ID  = (Fifo[1].RIR & CAN_RIR_STID) >> 3U;
+    }
+    
+    uint8_t len = Fifo[1].RDTR & CAN_RDTR_DLC;
+    Frame.DLC   = len;
+
+    for(uint8_t i = 0 ; i < len ; i++)
+    {
+        if(i < 4U)
+        {
+            Frame.Data[i] = (uint8_t)(Fifo[1].RDLR >> (8U*i));
+        }
+        else
+        {
+            Frame.Data[i] = (uint8_t)(Fifo[1].RDHR >> (8U*(i - 4U)));
+        }
+    }
+
+    CAN_Rx_Queue_Push(hcan,Frame);
+    hcan->Instance->RF1R |= CAN_RF1R_RFOM1;  
+}
+
+void CAN_RX_IRQHandler(CAN_Handle_t *hcan,uint8_t Fifo)
+{
+    if(Fifo == CAN_RX_FIFO0)
+    {
+        /*Check interrupt flags*/
+        if((hcan->Instance->RF0R & CAN_RF0R_FMP0) != 0U)
+        {
+            CAN_RX0_Get_and_Release(hcan);
+            //callback here
+            if((hcan->RxFifo0_MsgPending_Callback) != NULL)
+            {
+                hcan->RxFifo0_MsgPending_Callback();
+            }
+        }
+
+        /*> FIFOMailox full*/
+        if(hcan->Instance->RF0R & CAN_RF0R_FULL0)
+        {
+            //insert ISR that handling 
+        }
+
+        /*> FIFO full -> OVERRUN*/
+        if(hcan->Instance->RF0R & CAN_RF0R_FOVR0)
+        {
+            //
+        }
+    }
+    else if(Fifo == CAN_RX_FIFO1)
+    {
+        /*check interrupt flag*/
+        if((hcan->Instance->RF1R & CAN_RF1R_FMP1) != 0U)
+        {   
+            CAN_RX1_Get_and_Release(hcan);
+
+            if(hcan->RxFifo1_MsgPending_Callback != NULL)
+            {
+                hcan->RxFifo1_MsgPending_Callback();
+            }
+        }
+
+        /*> FIFOMailox full*/
+        if(hcan->Instance->RF1R & CAN_RF1R_FULL1)
+        {
+            //insert ISR that handling 
+        }
+
+        /*> FIFO full -> OVERRUN*/
+        if(hcan->Instance->RF1R & CAN_RF1R_FOVR1)
+        {
+            //
+        }
+    }
+}
 

@@ -1,12 +1,7 @@
 #include "stm32f407xxx_nvic.h"
 
 
-/*----------------------------inline function---------------------------------*/
-/*
-    1. set interupt enable in ISERx
-    2. set pending interupt in ISPRx
-    3. configure priority interupt in IPSRx
-*/
+
 #define NO_PR_BITS_IMPLEMENTED         4U
 /*
  * Enable interrupt in NVIC

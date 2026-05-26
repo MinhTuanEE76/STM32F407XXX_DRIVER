@@ -1,6 +1,7 @@
 #include "stm32f407xxx_it.h"
 #include "stm32f407xxx_exti.h"
 #include "stm32f407xxx_uart.h"
+#include "stm32f407xxx_can.h"
 
 extern USART_Handle_t huart;
 
@@ -131,3 +132,47 @@ void EXTI9_5_IRQHandler(void)
         break;
     }
 }
+
+/* ============================================CAN_Handler============================================ */
+extern CAN_Handle_t hcan1;
+extern CAN_Handle_t hcan2;
+
+void CAN1_TX_IRQHandler(void){
+
+}
+
+void CAN1_RX0_IRQHandler(void)
+{
+    CAN_RX_IRQHandler(&hcan1,CAN_RX_FIFO0);
+}
+
+void CAN1_RX1_IRQHandler(void)
+{
+    CAN_RX_IRQHandler(&hcan1,CAN_RX_FIFO1);
+}
+
+void CAN1_SCE_IRQHandler(void)
+{
+    
+}
+
+/*> CAN2*/
+void CAN2_TX_IRQHandler(void)
+{
+
+}            
+
+void CAN2_RX0_IRQHandler(void) 
+{
+    CAN_RX_IRQHandler(&hcan2,CAN_RX_FIFO0);
+}           
+
+void CAN2_RX1_IRQHandler(void)    
+{
+    CAN_RX_IRQHandler(&hcan2,CAN_RX_FIFO1);
+}     
+
+void CAN2_SCE_IRQHandler(void)  
+{
+
+} 
