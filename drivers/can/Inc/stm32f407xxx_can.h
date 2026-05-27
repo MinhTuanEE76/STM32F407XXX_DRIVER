@@ -526,7 +526,7 @@ typedef struct {
     CAN_Config_t Init;                      /* CAN communication parameters. */
 
     CAN_TxFrame_t *TxFrame;                 /* CAN Tx message. */
-    CAN_RxQueue_t *RxQueue;                 /* CAN Rx message queue. */
+    CAN_RxQueue_t RxQueue;                 /* CAN Rx message queue. */
 
     CAN_FilterConfig_t FilterConfig;        /* CAN filter configuration. */
 

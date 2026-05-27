@@ -5,12 +5,14 @@
 #include "stm32f407xxx_uart.h"
 #include "stm32f407xxx_nvic.h"
 #include "stm32f407xxx_can.h"
+#include <string.h>
+#include <stdio.h>
 
 
 GPIO_Handle_TypeDef_t hgpio;
 EXTI_Handle_t hexti;
 USART_Handle_t huart;
-CAN_Handle_t hcan;
+CAN_Handle_t hcan1;
 CAN_TxMailboxStatus_t mailbox_status;
 
 uint8_t rx_buffer[10];
@@ -23,6 +25,24 @@ void EXTI_Callback(void)
 static void GPIO_INIT(void);
 static void USART_INIT(void);
 static void CAN_INIT(void);
+
+void RX_Callack(void)
+{
+    char msg[50];
+    snprintf(msg, sizeof(msg), "Received message: %02X %02X %02X %02X %02X %02X %02X %02X %02X\r\n",
+             hcan1.RxQueue.RxFrame_Queue[hcan1.RxQueue.tail].Data[0],
+             hcan1.RxQueue.RxFrame_Queue[hcan1.RxQueue.tail].Data[1],
+             hcan1.RxQueue.RxFrame_Queue[hcan1.RxQueue.tail].Data[2],
+             hcan1.RxQueue.RxFrame_Queue[hcan1.RxQueue.tail].Data[3],
+             hcan1.RxQueue.RxFrame_Queue[hcan1.RxQueue.tail].Data[4],
+             hcan1.RxQueue.RxFrame_Queue[hcan1.RxQueue.tail].Data[5],
+             hcan1.RxQueue.RxFrame_Queue[hcan1.RxQueue.tail].Data[6],
+             hcan1.RxQueue.RxFrame_Queue[hcan1.RxQueue.tail].Data[7],
+             hcan1.RxQueue.RxFrame_Queue[hcan1.RxQueue.tail].ID
+    );
+    USART_Transmit_Polling(&huart, (uint8_t*)msg, strlen(msg));
+    GPIO_TogglePin(GPIOA,GPIO_PIN_6);
+}
 
 int main(void)
 {
@@ -38,28 +58,29 @@ int main(void)
     USART_INIT();
     CAN_INIT();
 
-    CAN_Start(&hcan);
+    CAN_Start(&hcan1);
 
     SYSTICK_Init(168000);
+    CAN_Get_Message_IT(&hcan1);
 
     while(1)
     {
         GPIO_TogglePin(GPIOA, GPIO_PIN_7);
-        USART_Transmit_IT(&huart, (uint8_t *)"Hello World\r\n", 13);
-        USART_Receive_IT(&huart, rx_buffer, 11);
-        CAN_Add_TxMessage(&hcan, &(CAN_TxFrame_t){
-            .ID = 0x123,
-            .IDE = CAN_ID_STANDARD,
-            .RTR = CAN_RTR_DATA,
-            .DLC = 2,
-            .Data = {0xAB, 0xCD}
-        });
-        CAN_Get_TxMailboxesStatus(&hcan, CAN_TX_MAILBOX_0);
-        if(hcan.ErrorCode |= CAN_ERROR_ACK)
-        {
-            //USART_Transmit_Polling(&huart, (uint8_t *)"CAN ACK error\r\n", 15);
-            USART_Transmit_IT(&huart, (uint8_t *)"CAN ACK error\r\n", 15);
-        }
+        // USART_Transmit_IT(&huart, (uint8_t *)"Hello World\r\n", 13);
+        // USART_Receive_IT(&huart, rx_buffer, 11);
+        // CAN_Add_TxMessage(&hcan1, &(CAN_TxFrame_t){
+        //     .ID = 0x123,
+        //     .IDE = CAN_ID_STANDARD,
+        //     .RTR = CAN_RTR_DATA,
+        //     .DLC = 2,
+        //     .Data = {0xAB, 0xCD}
+        // });
+        // CAN_Get_TxMailboxesStatus(&hcan1, CAN_TX_MAILBOX_0);
+        // if(hcan1.ErrorCode & CAN_ERROR_ACK)
+        // {
+        //     USART_Transmit_Polling(&huart, (uint8_t *)"CAN ACK error\r\n", 15);
+        //     USART_Transmit_IT(&huart, (uint8_t *)"CAN ACK error\r\n", 15);
+        // }
         SYSTICK_DelayMs(500);
     }
 }
@@ -70,7 +91,7 @@ static void GPIO_INIT(void)
 
     config.Pin   = GPIO_PIN_6 | GPIO_PIN_7;
     config.Mode  = GPIO_MODE_OUTPUT;
-    config.State = GPIO_PIN_RESET;
+    config.State = GPIO_PIN_SET;
     config.Type  = GPIO_TYPE_PUSHPULL;
     config.Pull  = GPIO_NO_PULL;
     config.Speed = GPIO_SPEED_LOW;
@@ -182,11 +203,16 @@ static void CAN_INIT(void)
 
     config.BitTiming = bit_timing;
 
-    hcan.Instance = CAN1;
-    hcan.Init = config;
-    hcan.ErrorCode = CAN_ERROR_NONE;
-    hcan.State = CAN_STATE_RESET;
-    CAN_Init(&hcan);
+    hcan1.Instance = CAN1;
+    hcan1.Init = config;
+    hcan1.ErrorCode = CAN_ERROR_NONE;
+    hcan1.State = CAN_STATE_RESET;
+    
+    hcan1.RxQueue.count = 0;
+    hcan1.RxQueue.head  = 0;
+    hcan1.RxQueue.tail  = 0;
+
+    CAN_Init(&hcan1);
 
     CAN_FilterConfig_t filter_config;
     filter_config.FilterBank = 0U;
@@ -197,6 +223,9 @@ static void CAN_INIT(void)
     filter_config.FifoAssignment = CAN_RX_FIFO0;
     filter_config.FilterActivation = CAN_FILTER_ENABLE;
 
-    hcan.FilterConfig = filter_config;
-    CAN_ConfigFilter(&hcan, &filter_config);
+    hcan1.FilterConfig = filter_config;
+    hcan1.RxFifo0_MsgPending_Callback = RX_Callack;
+    CAN_ConfigFilter(&hcan1, &filter_config);
+
+    NVIC_EnableIRQ(IRQ_NO_CAN1_RX0);
 }

@@ -1139,7 +1139,7 @@ void CAN_Get_Message_IT(CAN_Handle_t *hcan)
 */
 void CAN_Rx_Queue_Push(CAN_Handle_t *hcan , CAN_RxFrame_t frame)
 {
-    CAN_RxQueue_t *Queue = hcan->RxQueue;
+    CAN_RxQueue_t *Queue = &hcan->RxQueue;
     if(Queue->count >= CAN_RX_QUEUE_SIZE)
     {
         return;
@@ -1151,7 +1151,7 @@ void CAN_Rx_Queue_Push(CAN_Handle_t *hcan , CAN_RxFrame_t frame)
 
 static void CAN_RX0_Get_and_Release(CAN_Handle_t *hcan)
 {
-    /*> At here: FIFO 0 contains at least one frame waitint to be processed */
+    /*> At here: FIFO 0 contains at least one frame waiting to be processed */
     CAN_FIFOMailBox_TypeDef_t *Fifo = hcan->Instance->sFIFOMailBox;
     
     CAN_RxFrame_t Frame = {0};
@@ -1190,7 +1190,7 @@ static void CAN_RX0_Get_and_Release(CAN_Handle_t *hcan)
 
 static void CAN_RX1_Get_and_Release(CAN_Handle_t *hcan)
 {
-    /*> At here: FIFO 1 contains at least one frame waitint to be processed */
+    /*> At here: FIFO 1 contains at least one frame waiting to be processed */
     CAN_FIFOMailBox_TypeDef_t *Fifo = hcan->Instance->sFIFOMailBox;
     
     CAN_RxFrame_t Frame = {0};

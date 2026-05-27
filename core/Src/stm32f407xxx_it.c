@@ -135,7 +135,7 @@ void EXTI9_5_IRQHandler(void)
 
 /* ============================================CAN_Handler============================================ */
 extern CAN_Handle_t hcan1;
-extern CAN_Handle_t hcan2;
+CAN_Handle_t hcan2; //temporary variable
 
 void CAN1_TX_IRQHandler(void){
 
@@ -159,7 +159,7 @@ void CAN1_SCE_IRQHandler(void)
 /*> CAN2*/
 void CAN2_TX_IRQHandler(void)
 {
-
+    
 }            
 
 void CAN2_RX0_IRQHandler(void) 
