@@ -4,6 +4,8 @@
 #define NULL ((void *)0)
 #define CAN_TIMEOUT_VALUE 1000U
 
+CAN_Handle_t hcan1;
+
 uint32_t tickstart = 0;
 
 /*< General CAN initialization function

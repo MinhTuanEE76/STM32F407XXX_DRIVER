@@ -10,7 +10,8 @@
                 "${workspaceFolder}/drivers/flash/Inc",
                 "${workspaceFolder}/drivers/exti/Inc",
                 "${workspaceFolder}/drivers/uart/Inc",
-                "${workspaceFolder}/drivers/can/Inc"
+                "${workspaceFolder}/drivers/can/Inc",
+                "${workspaceFolder}/drivers/i2c/Inc"
             ],
             "defines": [
                 "STM32F407xx"
@@ -27,7 +28,8 @@
                     "${workspaceFolder}/drivers/flash/Inc",
                     "${workspaceFolder}/drivers/exti/Inc",
                     "${workspaceFolder}/drivers/uart/Inc",
-                    "${workspaceFolder}/drivers/can/Inc"
+                    "${workspaceFolder}/drivers/can/Inc",
+                    "${workspaceFolder}/drivers/i2c/Inc"
                 ]
             }
         }

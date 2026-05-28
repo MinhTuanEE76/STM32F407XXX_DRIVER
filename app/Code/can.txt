@@ -5,20 +5,17 @@
 #include "stm32f407xxx_uart.h"
 #include "stm32f407xxx_nvic.h"
 #include "stm32f407xxx_can.h"
-#include "stm32f407xxx_i2c.h"
 #include <string.h>
 #include <stdio.h>
-
-#define SLAVE_ADDR 0x50 //example slave address for AT24C25 EEPROM
-
 
 
 GPIO_Handle_TypeDef_t hgpio;
 EXTI_Handle_t hexti;
 USART_Handle_t huart;
-I2C_Handle_t hi2c;
+CAN_Handle_t hcan1;
+CAN_TxMailboxStatus_t mailbox_status;
 
-
+uint8_t rx_buffer[10];
 
 void EXTI_Callback(void)
 {
@@ -27,9 +24,25 @@ void EXTI_Callback(void)
 
 static void GPIO_INIT(void);
 static void USART_INIT(void);
-static void I2C_INIT(void);
+static void CAN_INIT(void);
 
-
+void RX_Callack(void)
+{
+    char msg[50];
+    snprintf(msg, sizeof(msg), "Received message: %02X %02X %02X %02X %02X %02X %02X %02X %02X\r\n",
+             hcan1.RxQueue.RxFrame_Queue[hcan1.RxQueue.tail].Data[0],
+             hcan1.RxQueue.RxFrame_Queue[hcan1.RxQueue.tail].Data[1],
+             hcan1.RxQueue.RxFrame_Queue[hcan1.RxQueue.tail].Data[2],
+             hcan1.RxQueue.RxFrame_Queue[hcan1.RxQueue.tail].Data[3],
+             hcan1.RxQueue.RxFrame_Queue[hcan1.RxQueue.tail].Data[4],
+             hcan1.RxQueue.RxFrame_Queue[hcan1.RxQueue.tail].Data[5],
+             hcan1.RxQueue.RxFrame_Queue[hcan1.RxQueue.tail].Data[6],
+             hcan1.RxQueue.RxFrame_Queue[hcan1.RxQueue.tail].Data[7],
+             hcan1.RxQueue.RxFrame_Queue[hcan1.RxQueue.tail].ID
+    );
+    USART_Transmit_Polling(&huart, (uint8_t*)msg, strlen(msg));
+    GPIO_TogglePin(GPIOA,GPIO_PIN_6);
+}
 
 int main(void)
 {
@@ -39,33 +52,35 @@ int main(void)
     RCC_ENABLE_PORTB_CLK();
     RCC_ENABLE_PORTE_CLK();
     RCC_ENABLE_SYSCFG_CLK();
-    RCC_ENABLE_I2C1_CLK();
-  
+    RCC_ENABLE_CAN1_CLK();
 
     GPIO_INIT();
     USART_INIT();
-    I2C_INIT();
-   
+    CAN_INIT();
+
+    CAN_Start(&hcan1);
+
     SYSTICK_Init(168000);
+    CAN_Get_Message_IT(&hcan1);
 
     while(1)
     {
         GPIO_TogglePin(GPIOA, GPIO_PIN_7);
-        
-        
-        uint8_t data[] = {0x12, 0x34, 'H', 'e', 'l', 'l', 'o'}; //example data to write to AT24C25 starting from memory address 0x0000
-        I2C_Start(&hi2c);
-        I2C_Master_Transmit(&hi2c, 0x50 << 1, data, 7U, 1000);
-        I2C_Stop(&hi2c);
-
-        SYSTICK_DelayMs(500);
-
-        I2C_Start(&hi2c);
-        //send memory address to read
-        I2C_Master_Transmit(&hi2c, 0x50 << 1, (uint8_t[]){0x12,0x34}, 2U, 1000);
-        I2C_Start(&hi2c); //repeated start for read
-        I2C_Master_Receive(&hi2c, (0x50 << 1) | 1, data, 10, 1000);
-        I2C_Stop(&hi2c);
+        // USART_Transmit_IT(&huart, (uint8_t *)"Hello World\r\n", 13);
+        // USART_Receive_IT(&huart, rx_buffer, 11);
+        // CAN_Add_TxMessage(&hcan1, &(CAN_TxFrame_t){
+        //     .ID = 0x123,
+        //     .IDE = CAN_ID_STANDARD,
+        //     .RTR = CAN_RTR_DATA,
+        //     .DLC = 2,
+        //     .Data = {0xAB, 0xCD}
+        // });
+        // CAN_Get_TxMailboxesStatus(&hcan1, CAN_TX_MAILBOX_0);
+        // if(hcan1.ErrorCode & CAN_ERROR_ACK)
+        // {
+        //     USART_Transmit_Polling(&huart, (uint8_t *)"CAN ACK error\r\n", 15);
+        //     USART_Transmit_IT(&huart, (uint8_t *)"CAN ACK error\r\n", 15);
+        // }
         SYSTICK_DelayMs(500);
     }
 }
@@ -149,25 +164,6 @@ static void GPIO_INIT(void)
     hgpio.Config   = &config;
     hgpio.Instance = GPIOB;
     GPIO_Init(&hgpio);
-
-    hgpio.Instance = GPIOB;
-    config.Pin  = GPIO_PIN_6;
-    config.Mode = GPIO_MODE_ALTF;
-    config.Type = GPIO_TYPE_OPEN_DRAIN;
-    config.Pull = GPIO_NO_PULL;
-    config.Speed = GPIO_SPEED_VERY_HIGH;
-    config.Alternate = GPIO_AF_PB6_I2C1_SCL;
-    hgpio.Config   = &config;
-    GPIO_Init(&hgpio);
-
-    config.Pin  = GPIO_PIN_7;
-    config.Mode = GPIO_MODE_ALTF;
-    config.Type = GPIO_TYPE_OPEN_DRAIN;
-    config.Pull = GPIO_NO_PULL;
-    config.Speed = GPIO_SPEED_VERY_HIGH;
-    config.Alternate = GPIO_AF_PB7_I2C1_SDA;
-    hgpio.Config   = &config;
-    GPIO_Init(&hgpio);
 }
 
 static void USART_INIT(void)
@@ -188,18 +184,48 @@ static void USART_INIT(void)
     NVIC_EnableIRQ(IRQ_NO_USART1);
 }
 
-static void I2C_INIT(void)
+static void CAN_INIT(void)
 {
-    I2C_Config_t config;
+    CAN_Config_t config;
 
-    config.ClockSpeed = I2C_CLOCK_SPEED_100KHz;
-    config.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
+    config.Mode = CAN_MODE_NORMAL;
+    config.AutoBussOff = CAN_AUTO_BUS_OFF_ENABLE;
+    config.AutoRetransmission = CAN_AUTO_RETRANSMISSION_DISABLE;
+    config.AutoWakeUp = CAN_AUTO_WAKE_UP_ENABLE;
+    config.ReceiveFifoLocked = CAN_RECEIVE_FIFO_LOCK_DISABLE;
 
-    config.Mode = I2C_MODE_STANDARD;
+    //PCLK1 = 42MHz
+    CAN_BitTiming_t bit_timing;
+    bit_timing.Prescaler = 6U;
+    bit_timing.SJW = 1U;
+    bit_timing.TS1 = 11U;
+    bit_timing.TS2 = 2U;
 
-    hi2c.Instance = I2C1;
-    hi2c.Init = config;
+    config.BitTiming = bit_timing;
 
-    RCC_ENABLE_I2C1_CLK();
-    I2C_Init(&hi2c);
+    hcan1.Instance = CAN1;
+    hcan1.Init = config;
+    hcan1.ErrorCode = CAN_ERROR_NONE;
+    hcan1.State = CAN_STATE_RESET;
+    
+    hcan1.RxQueue.count = 0;
+    hcan1.RxQueue.head  = 0;
+    hcan1.RxQueue.tail  = 0;
+
+    CAN_Init(&hcan1);
+
+    CAN_FilterConfig_t filter_config;
+    filter_config.FilterBank = 0U;
+    filter_config.FilterMode = CAN_FILTERMODE_IDMASK;
+    filter_config.FilterScale = CAN_FILTER_SCALE_32BIT;
+    filter_config.FilterID1 = 0x00000000U;   
+    filter_config.FilterID2 = 0x00000000U;
+    filter_config.FifoAssignment = CAN_RX_FIFO0;
+    filter_config.FilterActivation = CAN_FILTER_ENABLE;
+
+    hcan1.FilterConfig = filter_config;
+    hcan1.RxFifo0_MsgPending_Callback = RX_Callack;
+    CAN_ConfigFilter(&hcan1, &filter_config);
+
+    NVIC_EnableIRQ(IRQ_NO_CAN1_RX0);
 }

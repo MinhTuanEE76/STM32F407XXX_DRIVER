@@ -292,5 +292,24 @@ typedef struct{
 #define CAN1    ((CAN_Reg_TypeDef_t*)(CAN1_BASE))
 #define CAN2    ((CAN_Reg_TypeDef_t*)(CAN2_BASE))
 
+/*Typedef for I2C registers */
+typedef struct{
+    volatile uint32_t CR1;      // I2C control register 1                    Address offset: 0x00
+    volatile uint32_t CR2;      // I2C control register 2                    Address offset: 0x04
+    volatile uint32_t OAR1;     // I2C own address register 1                Address offset: 0x08
+    volatile uint32_t OAR2;     // I2C own address register 2                Address offset: 0x0C
+    volatile uint32_t DR;       // I2C data register                         Address offset: 0x10
+    volatile uint32_t SR1;      // I2C status register 1                     Address offset: 0x14
+    volatile uint32_t SR2;      // I2C status register 2                     Address offset: 0x18
+    volatile uint32_t CCR;      // I2C clock control register                Address offset: 0x1C
+    volatile uint32_t TRISE;    // I2C TRISE register                        Address offset: 0x20
+} I2C_Reg_TypeDef_t;
+
+//map I2C base address to I2C register structure
+#define I2C1    ((I2C_Reg_TypeDef_t*)(I2C1_BASE))
+#define I2C2    ((I2C_Reg_TypeDef_t*)(I2C2_BASE))
+#define I2C3    ((I2C_Reg_TypeDef_t*)(I2C3_BASE))
+
+
 #endif // __STM32F407XXX_H
 

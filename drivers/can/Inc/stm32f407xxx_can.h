@@ -542,7 +542,6 @@ typedef struct {
 } CAN_Handle_t;
 
 
-
 /*< Function prototypes */
 CAN_Status_t CAN_Init(CAN_Handle_t *hcan);
 
