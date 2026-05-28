@@ -16,7 +16,7 @@
 GPIO_Handle_TypeDef_t hgpio;
 EXTI_Handle_t hexti;
 USART_Handle_t huart;
-I2C_Handle_t hi2c;
+extern I2C_Handle_t hi2c1;
 
 
 
@@ -52,20 +52,21 @@ int main(void)
     {
         GPIO_TogglePin(GPIOA, GPIO_PIN_7);
         
+        I2C_Master_Transmit_IT(&hi2c1, SLAVE_ADDR, (uint8_t*)"Hello", 5U);
         
-        uint8_t data[] = {0x12, 0x34, 'H', 'e', 'l', 'l', 'o'}; //example data to write to AT24C25 starting from memory address 0x0000
-        I2C_Start(&hi2c);
-        I2C_Master_Transmit(&hi2c, 0x50 << 1, data, 7U, 1000);
-        I2C_Stop(&hi2c);
+        // uint8_t data[] = {0x12, 0x34, 'H', 'e', 'l', 'l', 'o'}; //example data to write to AT24C25 starting from memory address 0x0000
+        // I2C_Start(&hi2c1);
+        // I2C_Master_Transmit(&hi2c1, 0x50 << 1, data, 7U, 1000);
+        // I2C_Stop(&hi2c1);
 
-        SYSTICK_DelayMs(500);
+        // SYSTICK_DelayMs(500);
 
-        I2C_Start(&hi2c);
-        //send memory address to read
-        I2C_Master_Transmit(&hi2c, 0x50 << 1, (uint8_t[]){0x12,0x34}, 2U, 1000);
-        I2C_Start(&hi2c); //repeated start for read
-        I2C_Master_Receive(&hi2c, (0x50 << 1) | 1, data, 10, 1000);
-        I2C_Stop(&hi2c);
+        // I2C_Start(&hi2c1);
+        // //send memory address to read
+        // I2C_Master_Transmit(&hi2c1, 0x50 << 1, (uint8_t[]){0x12,0x34}, 2U, 1000);
+        // I2C_Start(&hi2c1); //repeated start for read
+        // I2C_Master_Receive(&hi2c1, (0x50 << 1) | 1, data, 10, 1000);
+        // I2C_Stop(&hi2c1);
         SYSTICK_DelayMs(500);
     }
 }
@@ -197,9 +198,10 @@ static void I2C_INIT(void)
 
     config.Mode = I2C_MODE_STANDARD;
 
-    hi2c.Instance = I2C1;
-    hi2c.Init = config;
+    hi2c1.Instance = I2C1;
+    hi2c1.Init = config;
 
-    RCC_ENABLE_I2C1_CLK();
-    I2C_Init(&hi2c);
+    I2C_Init(&hi2c1);
+    NVIC_EnableIRQ(IRQ_NO_I2C1_EV);
+    NVIC_EnableIRQ(IRQ_NO_I2C1_ER);
 }

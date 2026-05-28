@@ -216,6 +216,10 @@
 #define I2C_DUTY_CYCLE_2     0U
 #define I2C_DUTY_CYCLE_16_9  1U
 
+#define I2C_STATE_READY      0U
+#define I2C_STATE_TX_BUSY    1U
+#define I2C_STATE_RX_BUSY    2U
+
 
 typedef enum{
     I2C_OK = 0U,
@@ -240,6 +244,20 @@ typedef struct{
 typedef struct{
     I2C_Reg_TypeDef_t *Instance;    /* Register base address. */
     I2C_Config_t Init;              /* I2C communication parameters. */
+
+    uint8_t *pTxBuffer;              /* Pointer to I2C Tx transfer buffer. */
+    uint8_t *pRxBuffer;              /* Pointer to I2C Rx transfer buffer. */
+
+    uint16_t TxLength;                /* I2C Tx transfer size. */
+    uint16_t TxCount;                 /* I2C Tx transfer counter. */
+
+    
+    uint16_t RxLength;                /* I2C Rx transfer size. */   
+    uint16_t RxCount;                 /* I2C Rx transfer counter. */
+
+    uint16_t DevAddress;              /* I2C slave device address. */
+
+    uint8_t State;                   /* I2C communication state. */
 } I2C_Handle_t;
 
 
@@ -253,5 +271,15 @@ I2C_Status_t I2C_Master_Transmit(I2C_Handle_t *hi2c, uint8_t DevAddress,
 
 I2C_Status_t I2C_Master_Receive(I2C_Handle_t *hi2c, uint8_t DevAddress,
                                 uint8_t *pData, uint16_t Size, uint32_t Timeout);
+
+I2C_Status_t I2C_Master_Transmit_IT(I2C_Handle_t *hi2c, uint8_t DevAddress,
+                                    uint8_t *pData, uint16_t Size);
+                            
+I2C_Status_t I2C_Master_Receive_IT(I2C_Handle_t *hi2c, uint8_t DevAddress, uint8_t *pData);
+
+
+void I2C_EV_IRQHandler(I2C_Handle_t *hi2c);
+void I2C_BUF_IRQHandler(I2C_Handle_t *hi2c);
+void I2C_ER_IRQHandler(I2C_Handle_t *hi2c);
 
 #endif // __STM32F407XXX_I2C_H  

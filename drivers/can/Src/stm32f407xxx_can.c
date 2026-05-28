@@ -5,6 +5,7 @@
 #define CAN_TIMEOUT_VALUE 1000U
 
 CAN_Handle_t hcan1;
+CAN_Handle_t hcan2;
 
 uint32_t tickstart = 0;
 

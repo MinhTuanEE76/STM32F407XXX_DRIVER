@@ -8,6 +8,10 @@
 #define MAX_RISE_TIME_SM 1000U   //in nanoseconds
 #define MAX_RISE_TIME_FM 300U    //in nanoseconds
 
+I2C_Handle_t hi2c1;
+I2C_Handle_t hi2c2;
+I2C_Handle_t hi2c3;
+
 static uint32_t tickstart = 0U;
 
 I2C_Status_t I2C_Start(I2C_Handle_t *hi2c)
@@ -112,8 +116,16 @@ I2C_Status_t I2C_Master_Transmit(I2C_Handle_t *hi2c, uint8_t DevAddress,
     {
         return I2C_ERROR;
     }
+
+    if(hi2c->State != I2C_STATE_READY)
+    {
+        return I2C_BUSY;
+    }
+
+    hi2c->State = I2C_STATE_TX_BUSY;
+
     tickstart = SYSTICK_GetTick();
-    
+
     //wait until start condition is generated (SB bit is set)
     while(!(hi2c->Instance->SR1 & I2C_SR1_SB))
     {
@@ -124,7 +136,7 @@ I2C_Status_t I2C_Master_Transmit(I2C_Handle_t *hi2c, uint8_t DevAddress,
     }
     //send slave address + R/W bit
     /*DevAddress = I2C address << 1 | R/W bit */
-    hi2c->Instance->DR = DevAddress;
+    hi2c->Instance->DR = (DevAddress << 1) | 0; //R/W bit = 0 for write
 
     /*wait until address is sent (ADDR bit is set)*/
     while(!(hi2c->Instance->SR1 & I2C_SR1_ADDR))
@@ -163,7 +175,7 @@ I2C_Status_t I2C_Master_Transmit(I2C_Handle_t *hi2c, uint8_t DevAddress,
             }
         }
     }
-
+    hi2c->State = I2C_STATE_READY;
     return I2C_OK;
 }  
 
@@ -176,6 +188,12 @@ I2C_Status_t I2C_Master_Receive(I2C_Handle_t *hi2c, uint8_t DevAddress,
         return I2C_ERROR;
     }
 
+    if(hi2c->State != I2C_STATE_READY)
+    {
+        return I2C_BUSY;
+    }
+
+    hi2c->State = I2C_STATE_RX_BUSY;
     tickstart = SYSTICK_GetTick();
 
     /* wait SB */
@@ -188,7 +206,7 @@ I2C_Status_t I2C_Master_Receive(I2C_Handle_t *hi2c, uint8_t DevAddress,
     }
 
     /* send slave address + read bit */
-    hi2c->Instance->DR = DevAddress;
+    hi2c->Instance->DR = (DevAddress << 1) | 1U; //R/W bit = 1 for read
 
     /* wait ADDR */
     while(!(hi2c->Instance->SR1 & I2C_SR1_ADDR))
@@ -235,7 +253,7 @@ I2C_Status_t I2C_Master_Receive(I2C_Handle_t *hi2c, uint8_t DevAddress,
 
     for(uint16_t i = 0; i < Size; i++)
     {
-        /*=============== LAST 3 BYTES ===============*/
+        /*Last 3 byte: N-2 | N-1 | N   */
         if(i == (Size - 3U))
         {
             /*
@@ -296,7 +314,116 @@ I2C_Status_t I2C_Master_Receive(I2C_Handle_t *hi2c, uint8_t DevAddress,
 
         pData[i] = hi2c->Instance->DR;
     }
-
+    hi2c->State = I2C_STATE_READY;
     return I2C_OK;
+}
+
+/*
+    * I2C Master Transmit Function with Interrupts
+    * Note: This function only initiates the transmission. 
+    * The actual data transfer will be handled in the I2C event interrupt handler.
+*/
+I2C_Status_t I2C_Master_Transmit_IT(I2C_Handle_t *hi2c, uint8_t DevAddress,
+                                    uint8_t *pData, uint16_t Size)
+{
+    if(hi2c == NULL || pData == NULL || Size == 0)
+    {
+        return I2C_ERROR;
+    }
+
+    //Check state of I2C
+    if(hi2c->State != I2C_STATE_READY)
+    {
+        return I2C_BUSY;
+    }
+
+    //Save context information in handler
+    hi2c->pTxBuffer = pData;
+    hi2c->TxLength = Size;
+    hi2c->DevAddress = DevAddress;
+    hi2c->TxCount = 0U;
+    hi2c->State = I2C_STATE_TX_BUSY;
+
+    /*>Enable Interrupts */
+    hi2c->Instance->CR2 |= I2C_CR2_ITEVTEN;   //Event interrupt
+    hi2c->Instance->CR2 |= I2C_CR2_ITERREN;   //Error interrupt
+    /*Tranfer data in IRQhandler*/
+    /*>Generate start condition to initiate communication */
+    hi2c->Instance->CR1 |= I2C_CR1_START;    //generate start condition
+}
+
+void I2C_EV_IRQHandler(I2C_Handle_t *hi2c)
+{
+    if(hi2c->Instance->SR1 & I2C_SR1_SB)
+    {
+        if(hi2c->State == I2C_STATE_TX_BUSY)
+        {
+            /*Start condition generated, send device address */
+            uint8_t DevAddress = hi2c->DevAddress << 1; //R/W bit = 0 for transmit
+            hi2c->Instance->DR = DevAddress;
+        }
+        else if(hi2c->State == I2C_STATE_RX_BUSY)
+        {
+            /*Start condition generated, send device address with read bit set*/
+            uint8_t DevAddress = (hi2c->DevAddress << 1) | 1U; //R/W bit = 1 for receive
+            hi2c->Instance->DR = DevAddress;
+        }
+        
+    }
+    /*Address sent, wait for ADDR flag and clear it in order to move forward with data transmission*/
+    if(hi2c->Instance->SR1 & I2C_SR1_ADDR)
+    {
+        /*Address sent, clear ADDR flag by reading SR1 and SR2*/
+        (void)hi2c->Instance->SR1;
+        (void)hi2c->Instance->SR2;
+
+        /*Trigger for data transmission-> Enable ITBUFEN*/
+        hi2c->Instance->CR2 |= I2C_CR2_ITBUFEN;
+
+    }
+}
+
+void I2C_BUF_IRQHandler(I2C_Handle_t *hi2c)
+{
+    if(hi2c->State == I2C_STATE_TX_BUSY)        //Transmit data until all data is transmitted
+    {
+        if(hi2c->Instance->SR1 & I2C_SR1_TXE)
+        {
+            hi2c->Instance->DR = hi2c->pTxBuffer[hi2c->TxCount++];
+
+            if(hi2c->TxCount == hi2c->TxLength)
+            {
+                tickstart = SYSTICK_GetTick();
+                while(!(hi2c->Instance->SR1 & I2C_SR1_BTF))
+                {
+                    //wait until byte transfer finished (BTF bit is set) after sending last byte
+                    if((SYSTICK_GetTick() - tickstart) > 1000U)
+                    {
+                        //timeout
+                        break;
+                    }
+                }
+                /*All data transmitted, generate stop condition*/
+                I2C_Stop(hi2c);
+                hi2c->State = I2C_STATE_READY;
+                /*Disable ITBUFEN to prevent further interrupts until next transmission*/
+                hi2c->Instance->CR2 &= ~I2C_CR2_ITBUFEN;
+            }
+        }
+    }
+    else if(hi2c->State == I2C_STATE_RX_BUSY)       //Receive data until all data is received
+    {
+        if(hi2c->Instance->SR1 & I2C_SR1_RXNE) 
+        {
+            hi2c->pRxBuffer[hi2c->RxCount++] = hi2c->Instance->DR;
+
+            if(hi2c->RxCount == hi2c->RxLength)
+            {
+                /*All data received, generate stop condition*/
+                I2C_Stop(hi2c);
+                hi2c->State = I2C_STATE_READY;
+            }
+        }
+    }
 }
                         

@@ -2,6 +2,7 @@
 #include "stm32f407xxx_exti.h"
 #include "stm32f407xxx_uart.h"
 #include "stm32f407xxx_can.h"
+#include "stm32f407xxx_i2c.h"
 
 extern USART_Handle_t huart;
 
@@ -135,7 +136,7 @@ void EXTI9_5_IRQHandler(void)
 
 /* ============================================CAN_Handler============================================ */
 extern CAN_Handle_t hcan1;
-CAN_Handle_t hcan2; //temporary variable
+extern CAN_Handle_t hcan2; 
 
 void CAN1_TX_IRQHandler(void){
 
@@ -176,3 +177,49 @@ void CAN2_SCE_IRQHandler(void)
 {
 
 } 
+
+/*----------------------------------I2C_Handler-------------------------------------*/
+extern I2C_Handle_t hi2c1;
+extern I2C_Handle_t hi2c2;
+extern I2C_Handle_t hi2c3;
+void I2C1_EV_IRQHandler(void)
+{
+    I2C_EV_IRQHandler(&hi2c1);
+    if(hi2c1.Instance->CR2 & I2C_CR2_ITBUFEN)
+    {
+        I2C_BUF_IRQHandler(&hi2c1);
+    }
+}
+
+void I2C1_ER_IRQHandler(void)
+{
+    //I2C_Error_IRQHandler(&hi2c1);
+}
+
+void I2C2_EV_IRQHandler(void)
+{
+    I2C_EV_IRQHandler(&hi2c2);
+    if(hi2c2.Instance->CR2 & I2C_CR2_ITBUFEN)
+    {
+        I2C_BUF_IRQHandler(&hi2c2);
+    }
+}
+
+void I2C2_ER_IRQHandler(void)
+{
+    //I2C_Error_IRQHandler(&hi2c2);
+}
+
+void I2C3_EV_IRQHandler(void)
+{
+    I2C_EV_IRQHandler(&hi2c3);
+    if(hi2c3.Instance->CR2 & I2C_CR2_ITBUFEN)
+    {
+        I2C_BUF_IRQHandler(&hi2c3);
+    }
+}
+
+void I2C3_ER_IRQHandler(void)
+{
+    //I2C_Error_IRQHandler(&hi2c3);
+}
